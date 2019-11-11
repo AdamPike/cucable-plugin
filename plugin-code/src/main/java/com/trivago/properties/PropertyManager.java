@@ -123,7 +123,16 @@ public class PropertyManager {
     }
 
     public void setIncludeScenarioTags(final String includeScenarioTags) {
-        this.includeScenarioTags = includeScenarioTags;
+        String cucumberTagsOption = "--tags";
+        if (includeScenarioTags.contains(cucumberTagsOption)) {
+            int indexOfTagsOption = includeScenarioTags.indexOf(cucumberTagsOption);
+            int indexOfTags = indexOfTagsOption + cucumberTagsOption.length() + 1;
+            String fullTagExpression = includeScenarioTags.substring(indexOfTags);
+            String tagsWithOutQuotes = fullTagExpression.replaceAll("\"", "");
+            this.includeScenarioTags = tagsWithOutQuotes;
+        } else {
+            this.includeScenarioTags = includeScenarioTags;
+        }
     }
 
     public ParallelizationMode getParallelizationMode() {

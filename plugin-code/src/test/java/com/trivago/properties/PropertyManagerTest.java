@@ -69,6 +69,13 @@ public class PropertyManagerTest {
     }
 
     @Test
+    public void setIncludeScenarioTagsFromCucumberOptions() {
+        propertyManager.setIncludeScenarioTags("--tags \"@foo and @bar\"");
+        String cucableTags = propertyManager.getIncludeScenarioTags();
+        assertThat(cucableTags, is("@foo and @bar"));
+    }
+
+    @Test
     public void customPlaceholdersTest() {
         Map<String, String> customPlaceholders = new HashMap<>();
         customPlaceholders.put("one", "two");
