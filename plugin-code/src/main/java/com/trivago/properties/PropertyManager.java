@@ -40,6 +40,8 @@ import static com.trivago.logging.CucableLogger.CucableLogLevel.DEFAULT;
 @Singleton
 public class PropertyManager {
 
+    private final static String CUCUMBER_TAGS_OPTION = "--tags";
+
     private final CucableLogger logger;
 
     private String sourceRunnerTemplateFile;
@@ -123,16 +125,30 @@ public class PropertyManager {
     }
 
     public void setIncludeScenarioTags(final String includeScenarioTags) {
-        String cucumberTagsOption = "--tags";
-        if (includeScenarioTags.contains(cucumberTagsOption)) {
-            int indexOfTagsOption = includeScenarioTags.indexOf(cucumberTagsOption);
-            int indexOfTags = indexOfTagsOption + cucumberTagsOption.length() + 1;
-            String fullTagExpression = includeScenarioTags.substring(indexOfTags);
-            String tagsWithOutQuotes = fullTagExpression.replaceAll("\"", "");
-            this.includeScenarioTags = tagsWithOutQuotes;
+        // Check if the user has passed these in from their CucumberOptions property.
+        if (includeScenarioTags.contains(CUCUMBER_TAGS_OPTION)) {
+            // Extract the Cucumber Options we want (tags) and format them for our use by removing quotes.
+            String cucumberOptions = includeScenarioTags;
+            String extractedTags = extractedOptions(cucumberOptions, CUCUMBER_TAGS_OPTION).replaceAll("\"", "").trim();;
+            this.includeScenarioTags = extractedTags;
         } else {
             this.includeScenarioTags = includeScenarioTags;
         }
+    }
+
+    private String extractedOptions(final String cucumberOptions, String cucumberOptionType) {
+        String additionalCucumberOptions = "--";
+        int indexOfOptionName = cucumberOptions.indexOf(cucumberOptionType);
+        int indexOfOptionsForExtraction = indexOfOptionName + cucumberOptionType.length() + 1;
+        String extractedOption = cucumberOptions.substring(indexOfOptionsForExtraction);
+        // Check for and remove any other options that have been added after the --tags option
+        if (extractedOption.contains(additionalCucumberOptions)) {
+            int indexOfAdditionalOptions = extractedOption.indexOf(additionalCucumberOptions);
+            String additionalOptions = extractedOption.substring(indexOfAdditionalOptions);
+            return extractedOption.replace(additionalOptions, "");
+        }
+
+        return extractedOption;
     }
 
     public ParallelizationMode getParallelizationMode() {
@@ -143,10 +159,8 @@ public class PropertyManager {
         try {
             this.parallelizationMode = ParallelizationMode.valueOf(parallelizationMode.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new CucablePluginException(
-                    "Unknown <parallelizationMode> '" + parallelizationMode +
-                            "'. Please use 'scenarios' or 'features'."
-            );
+            throw new CucablePluginException("Unknown <parallelizationMode> '" + parallelizationMode
+                    + "'. Please use 'scenarios' or 'features'.");
         }
     }
 
@@ -185,7 +199,8 @@ public class PropertyManager {
             // Split scenarioNames on ',' and adjacent spaces to avoid multiple trims.
             scenarioNameList = Arrays.asList(scenarioNames.trim().split("\\s*,\\s*"));
 
-            // If scenarioNames is specified, set desiredNumberOfRunners to the number of scenario names.
+            // If scenarioNames is specified, set desiredNumberOfRunners to the number of
+            // scenario names.
             setDesiredNumberOfRunners(scenarioNameList.size());
         }
 
@@ -195,8 +210,8 @@ public class PropertyManager {
     /**
      * Checks the pom settings for the plugin.
      *
-     * @throws CucablePluginException Thrown when a required setting
-     *                                is not specified in the pom.
+     * @throws CucablePluginException Thrown when a required setting is not
+     *                                specified in the pom.
      */
     public void checkForMissingMandatoryProperties() throws CucablePluginException {
         List<String> missingProperties = new ArrayList<>();
@@ -222,8 +237,7 @@ public class PropertyManager {
 
         if (desiredNumberOfFeaturesPerRunner > 0 && desiredNumberOfRunners > 0) {
             throw new CucablePluginException(
-                    "You cannot use desiredNumberOfFeaturesPerRunner and desiredNumberOfRunners/scenarioNames at the same time!"
-            );
+                    "You cannot use desiredNumberOfFeaturesPerRunner and desiredNumberOfRunners/scenarioNames at the same time!");
         }
 
         if (parallelizationMode == ParallelizationMode.SCENARIOS) {
@@ -239,7 +253,8 @@ public class PropertyManager {
             errorMessage = "you cannot specify scenarioNames!";
         }
         if (!errorMessage.isEmpty()) {
-            throw new CucablePluginException("In parallelizationMode = " + ParallelizationMode.FEATURES.toString().toLowerCase() + ", ".concat(errorMessage));
+            throw new CucablePluginException("In parallelizationMode = "
+                    + ParallelizationMode.FEATURES.toString().toLowerCase() + ", ".concat(errorMessage));
         }
     }
 
@@ -247,7 +262,7 @@ public class PropertyManager {
      * Logs all passed property values.
      */
     public void logProperties() {
-        CucableLogLevel[] logLevels = new CucableLogLevel[]{DEFAULT, COMPACT};
+        CucableLogLevel[] logLevels = new CucableLogLevel[] { DEFAULT, COMPACT };
 
         logger.info("- sourceFeatures               :", logLevels);
         if (sourceFeatures != null) {
@@ -271,20 +286,19 @@ public class PropertyManager {
         logger.logInfoSeparator(DEFAULT);
 
         if (includeScenarioTags != null && !includeScenarioTags.isEmpty()) {
-            logger.info(String.format("- includeScenarioTags          : %s",
-                    String.join(", ", includeScenarioTags)), logLevels);
+            logger.info(String.format("- includeScenarioTags          : %s", String.join(", ", includeScenarioTags)),
+                    logLevels);
         }
         if (customPlaceholders != null && !customPlaceholders.isEmpty()) {
             logger.info("- customPlaceholders           :", logLevels);
             for (Map.Entry<String, String> customPlaceholder : customPlaceholders.entrySet()) {
-                logger.info(
-                        String.format("  %s => %s", customPlaceholder.getKey(), customPlaceholder.getValue()),
-                        logLevels
-                );
+                logger.info(String.format("  %s => %s", customPlaceholder.getKey(), customPlaceholder.getValue()),
+                        logLevels);
             }
         }
 
-        logger.info(String.format("- parallelizationMode          : %s", parallelizationMode.name().toLowerCase()), logLevels);
+        logger.info(String.format("- parallelizationMode          : %s", parallelizationMode.name().toLowerCase()),
+                logLevels);
         logger.info(String.format("- numberOfTestRuns             : %d", numberOfTestRuns), logLevels);
 
         if (desiredNumberOfRunners > 0) {
@@ -295,17 +309,15 @@ public class PropertyManager {
     }
 
     /**
-     * Checks if a property is null or empty and adds it to the missingProperties list.
+     * Checks if a property is null or empty and adds it to the missingProperties
+     * list.
      *
      * @param propertyValue     The value of the property to check.
      * @param propertyName      The name of the property to check.
      * @param missingProperties The list of missing properties.
      */
-    private void saveMissingProperty(
-            final String propertyValue,
-            final String propertyName,
-            final List<String> missingProperties
-    ) {
+    private void saveMissingProperty(final String propertyValue, final String propertyName,
+            final List<String> missingProperties) {
         if (propertyValue == null || propertyValue.isEmpty()) {
             missingProperties.add(propertyName);
         }
