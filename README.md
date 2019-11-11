@@ -389,6 +389,14 @@ __Example:__ include scenarios that are __not__ tagged with _@scenario1_ but tag
 <includeScenarioTags>not @scenario1 and (@scenario2 or scenario3)</includeScenarioTags>
 ```
 
+You can also set these tags from the usual CucumberOptions.
+
+__Example:__ mvn verify -Dcucuber.options='--tags "@sceanrio1 and @sceanrio2"' 
+```xml
+<includeScenarioTags>${cucumber.options}</includeScenarioTags>
+```
+
+
 #### parallelizationMode
 
 By default, Cucable uses the `parallelizationMode = scenarios` meaning that feature files are split into individual scenarios that each have a dedicated runner.
